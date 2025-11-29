@@ -3,8 +3,8 @@
 #include <vector>
 #include <string>
 #include <mutex>
-#include "../shared/protocol.h"
-#include "../shared/cache.h"
+#include "../Shared/protocol.h"
+#include "../Shared/cache.h"
 
 struct ClientInfo {
     int socket;

@@ -1,6 +1,6 @@
 #include "chat_client.h"
-#include "../shared/protocol.h"
-#include "../shared/utils.h"
+#include "../Shared/protocol.h"
+#include "../Shared/utils.h"
 
 #include <iostream>
 #include <thread>

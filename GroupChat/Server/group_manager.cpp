@@ -1,5 +1,5 @@
 #include "group_manager.h"
-#include "../shared/utils.h"
+#include "../Shared/utils.h"
 #include <algorithm>
 #include <arpa/inet.h>
 
