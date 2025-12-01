@@ -1,6 +1,8 @@
+// Server/chat_server.cpp
 #include "chat_server.h"
 #include "../Shared/protocol.h"
 #include "../Shared/utils.h"
+#include "perf_stats.h"
 
 #include <iostream>
 #include <thread>
@@ -8,6 +10,26 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <cstring>
+#include <csignal>
+#include <atomic>
+
+// -------- global run flag + signal handler for Ctrl+C --------
+
+static std::atomic<bool> g_running{true};
+
+void handle_sigint(int)
+{
+    // stop the accept loop
+    g_running.store(false);
+
+    std::cerr << "\nSIGINT received, dumping stats...\n";
+    stats_dump_to_stdout();
+    stats_dump_to_file("logs/performance.txt");
+
+    std::_Exit(0);   // exit immediately after dumping stats
+}
+
+// -------- ChatServer implementation --------
 
 ChatServer::ChatServer(int port, std::size_t workerThreads)
     : port_(port), server_fd_(-1), groups_(50), pool_(workerThreads) {}
@@ -17,6 +39,13 @@ ChatServer::~ChatServer() {
 }
 
 void ChatServer::run() {
+    // init performance stats
+    stats_init();
+    stats_init_vm(32);
+
+    // install Ctrl+C handler (SIGINT)
+    std::signal(SIGINT, handle_sigint);
+
     server_fd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd_ < 0) {
         perror("socket");
@@ -43,17 +72,22 @@ void ChatServer::run() {
 
     std::cout << "Chat server listening on port " << port_ << "...\n";
 
-    while (true) {
+    while (g_running.load()) {
         sockaddr_in clientAddr{};
         socklen_t len = sizeof(clientAddr);
         int clientSock = accept(server_fd_, (sockaddr*)&clientAddr, &len);
         if (clientSock < 0) {
+            if (!g_running.load()) break;   // shutting down; stop cleanly
             perror("accept");
             continue;
         }
 
         std::thread(&ChatServer::handleClient, this, clientSock).detach();
     }
+
+    // if we ever exit the loop normally, also dump stats here
+    stats_dump_to_stdout();
+    stats_dump_to_file("logs/performance.txt");
 }
 
 void ChatServer::handleClient(int clientSock) {
@@ -83,7 +117,11 @@ void ChatServer::handleClient(int clientSock) {
                 break;
             }
             case ChatType::MESSAGE: {
-                // broadcast handled via thread pool (scheduling)
+                // track stats
+                stats_record_message();
+                stats_vm_access(groupId);
+
+                // broadcast via thread pool
                 pool_.enqueue([this, pkt, groupId]() {
                     ChatPacket toSend = pkt;
                     // timestamp on server

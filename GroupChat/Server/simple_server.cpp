@@ -83,6 +83,9 @@ void handle_client(int client_socket) {
 }
 
 int main() {
+    stats_init();
+    stats_init_vm(32);
+    signal(SIGINT, handle_sigint);
     int server_fd, new_socket;
     struct sockaddr_in address{};
     int addrlen = sizeof(address);
