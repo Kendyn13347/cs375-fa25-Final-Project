@@ -14,3 +14,19 @@ Max queue size: 1
 --- Virtual Memory (simulated) ---
 Page faults: 1
 
+=== Performance Stats ===
+Total messages: 2
+Message rate: 0.0155002 msg/sec
+
+--- Cache Stats (per group) ---
+
+--- Thread usage ---
+Thread 0 completed 1 tasks
+Thread 1 completed 1 tasks
+Thread 2 completed 0 tasks
+Thread 3 completed 0 tasks
+Max queue size: 1
+
+--- Virtual Memory (simulated) ---
+Page faults: 1
+
